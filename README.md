@@ -1,4 +1,8 @@
+# Megalodon Without OpenSSL
+Just changed some package feature flags to make this compile without `openssl` (no linking to `-lssl`, or `-lcrypto`). The rest of it is the same
+
 # Megalodon
+
 [![Crates.io](https://img.shields.io/crates/v/megalodon)](https://crates.io/crates/megalodon)
 [![docs.rs](https://img.shields.io/docsrs/megalodon/latest)](https://docs.rs/megalodon/latest/megalodon/)
 [![Build](https://github.com/h3poteto/megalodon-rs/actions/workflows/build.yml/badge.svg)](https://github.com/h3poteto/megalodon-rs/actions/workflows/build.yml)
