@@ -43,7 +43,7 @@ impl From<InnerMarker> for MegalodonEntities::marker::InnerMarker {
 
 mod date_format_without_tz {
     use chrono::{DateTime, NaiveDateTime, Utc};
-    use serde::{self, Deserialize, Deserializer, Serializer};
+    use serde::{Deserialize, Deserializer, Serializer};
 
     const FORMAT: &'static str = "%Y-%m-%dT%H:%M:%S";
 
