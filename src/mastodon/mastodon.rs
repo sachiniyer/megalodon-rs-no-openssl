@@ -385,6 +385,19 @@ impl megalodon::Megalodon for Mastodon {
         ))
     }
 
+    async fn get_account_favourites(
+        &self,
+        _id: String,
+        _options: Option<&megalodon::GetAccountFavouritesInputOptions>,
+    ) -> Result<Response<Vec<MegalodonEntities::Status>>, Error> {
+        Err(Error::new_own(
+            "Mastodon doest not support".to_string(),
+            error::Kind::NoImplementedError,
+            None,
+            None,
+        ))
+    }
+
     async fn subscribe_account(
         &self,
         id: String,
@@ -721,6 +734,32 @@ impl megalodon::Megalodon for Mastodon {
         ))
     }
 
+    async fn set_account_note(
+        &self,
+        id: String,
+        note: Option<String>,
+    ) -> Result<Response<MegalodonEntities::Relationship>, Error> {
+        let params = HashMap::<&str, Value>::from([(
+            "comment",
+            serde_json::Value::String(note.unwrap_or("".to_string())),
+        )]);
+        let res = self
+            .client
+            .post::<entities::Relationship>(
+                format!("/api/v1/accounts/{}/note", id).as_ref(),
+                &params,
+                None,
+            )
+            .await?;
+
+        Ok(Response::<MegalodonEntities::Relationship>::new(
+            res.json.into(),
+            res.status,
+            res.status_text,
+            res.header,
+        ))
+    }
+
     async fn get_relationships(
         &self,
         ids: Vec<String>,
@@ -777,6 +816,28 @@ impl megalodon::Megalodon for Mastodon {
 
         Ok(Response::<Vec<MegalodonEntities::Account>>::new(
             res.json.into_iter().map(|j| j.into()).collect(),
+            res.status,
+            res.status_text,
+            res.header,
+        ))
+    }
+
+    async fn lookup_account(
+        &self,
+        acct: String,
+    ) -> Result<Response<MegalodonEntities::Account>, Error> {
+        let params = Vec::<String>::from([format!("acct={}", acct)]);
+        let mut path = "/api/v1/accounts/lookup".to_string();
+        if params.len() > 0 {
+            path = path + "?" + params.join("&").as_str();
+        }
+        let res = self
+            .client
+            .get::<entities::Account>(path.as_str(), None)
+            .await?;
+
+        Ok(Response::<MegalodonEntities::Account>::new(
+            res.json.into(),
             res.status,
             res.status_text,
             res.header,
@@ -2674,6 +2735,18 @@ impl megalodon::Megalodon for Mastodon {
             .await?;
 
         Ok(res)
+    }
+
+    async fn read_notifications(
+        &self,
+        _options: &megalodon::ReadNotificationsInputOptions,
+    ) -> Result<Response<()>, Error> {
+        Err(Error::new_own(
+            "Mastodon doest not support".to_string(),
+            error::Kind::NoImplementedError,
+            None,
+            None,
+        ))
     }
 
     async fn subscribe_push_notification(

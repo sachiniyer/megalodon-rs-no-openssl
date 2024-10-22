@@ -537,6 +537,19 @@ impl megalodon::Megalodon for Firefish {
         ))
     }
 
+    async fn get_account_favourites(
+        &self,
+        _id: String,
+        _options: Option<&megalodon::GetAccountFavouritesInputOptions>,
+    ) -> Result<Response<Vec<MegalodonEntities::Status>>, Error> {
+        Err(Error::new_own(
+            "Firefish doest not support".to_string(),
+            error::Kind::NoImplementedError,
+            None,
+            None,
+        ))
+    }
+
     async fn subscribe_account(
         &self,
         _id: String,
@@ -795,6 +808,19 @@ impl megalodon::Megalodon for Firefish {
         ))
     }
 
+    async fn set_account_note(
+        &self,
+        _id: String,
+        _note: Option<String>,
+    ) -> Result<Response<MegalodonEntities::Relationship>, Error> {
+        Err(Error::new_own(
+            "Firefish does not support".to_string(),
+            error::Kind::NoImplementedError,
+            None,
+            None,
+        ))
+    }
+
     async fn get_relationships(
         &self,
         ids: Vec<String>,
@@ -840,6 +866,18 @@ impl megalodon::Megalodon for Firefish {
             res.status,
             res.status_text,
             res.header,
+        ))
+    }
+
+    async fn lookup_account(
+        &self,
+        _acct: String,
+    ) -> Result<Response<MegalodonEntities::Account>, Error> {
+        Err(Error::new_own(
+            "Firefish doest not support".to_string(),
+            error::Kind::NoImplementedError,
+            None,
+            None,
         ))
     }
 
@@ -2171,6 +2209,18 @@ impl megalodon::Megalodon for Firefish {
             .post::<()>("/api/notifications/read", &params, None)
             .await?;
         Ok(res)
+    }
+
+    async fn read_notifications(
+        &self,
+        _options: &megalodon::ReadNotificationsInputOptions,
+    ) -> Result<Response<()>, Error> {
+        Err(Error::new_own(
+            "Firefish doest not support".to_string(),
+            error::Kind::NoImplementedError,
+            None,
+            None,
+        ))
     }
 
     async fn subscribe_push_notification(

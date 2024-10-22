@@ -362,6 +362,9 @@ impl megalodon::Megalodon for Gotosocial {
             if let Some(only_media) = options.only_media {
                 params.push(format!("only_media={}", only_media));
             }
+            if let Some(only_public) = options.only_public {
+                params.push(format!("only_public={}", only_public));
+            }
         }
         let mut url = format!("/api/v1/accounts/{}/statuses", id);
         if params.len() > 0 {
@@ -377,6 +380,19 @@ impl megalodon::Megalodon for Gotosocial {
             res.status,
             res.status_text,
             res.header,
+        ))
+    }
+
+    async fn get_account_favourites(
+        &self,
+        _id: String,
+        _options: Option<&megalodon::GetAccountFavouritesInputOptions>,
+    ) -> Result<Response<Vec<MegalodonEntities::Status>>, Error> {
+        Err(Error::new_own(
+            "Gotosocial doest not support".to_string(),
+            error::Kind::NoImplementedError,
+            None,
+            None,
         ))
     }
 
@@ -665,6 +681,32 @@ impl megalodon::Megalodon for Gotosocial {
         ))
     }
 
+    async fn set_account_note(
+        &self,
+        id: String,
+        note: Option<String>,
+    ) -> Result<Response<MegalodonEntities::Relationship>, Error> {
+        let params = HashMap::<&str, Value>::from([(
+            "comment",
+            serde_json::Value::String(note.unwrap_or("".to_string())),
+        )]);
+        let res = self
+            .client
+            .post::<entities::Relationship>(
+                format!("/api/v1/accounts/{}/note", id).as_ref(),
+                &params,
+                None,
+            )
+            .await?;
+
+        Ok(Response::<MegalodonEntities::Relationship>::new(
+            res.json.into(),
+            res.status,
+            res.status_text,
+            res.header,
+        ))
+    }
+
     async fn get_relationships(
         &self,
         ids: Vec<String>,
@@ -689,9 +731,21 @@ impl megalodon::Megalodon for Gotosocial {
 
     async fn search_account(
         &self,
-        acct: String,
+        _acct: String,
         _options: Option<&megalodon::SearchAccountInputOptions>,
     ) -> Result<Response<Vec<MegalodonEntities::Account>>, Error> {
+        Err(Error::new_own(
+            "Gotosocial doest not support".to_string(),
+            error::Kind::NoImplementedError,
+            None,
+            None,
+        ))
+    }
+
+    async fn lookup_account(
+        &self,
+        acct: String,
+    ) -> Result<Response<MegalodonEntities::Account>, Error> {
         let params = Vec::<String>::from([format!("acct={}", acct)]);
         let mut path = "/api/v1/accounts/lookup".to_string();
         if params.len() > 0 {
@@ -702,8 +756,8 @@ impl megalodon::Megalodon for Gotosocial {
             .get::<entities::Account>(path.as_str(), None)
             .await?;
 
-        Ok(Response::<Vec<MegalodonEntities::Account>>::new(
-            [res.json.into()].to_vec(),
+        Ok(Response::<MegalodonEntities::Account>::new(
+            res.json.into(),
             res.status,
             res.status_text,
             res.header,
@@ -781,13 +835,34 @@ impl megalodon::Megalodon for Gotosocial {
 
     async fn get_mutes(
         &self,
-        _options: Option<&megalodon::GetMutesInputOptions>,
+        options: Option<&megalodon::GetMutesInputOptions>,
     ) -> Result<Response<Vec<MegalodonEntities::Account>>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+        let mut params = Vec::<String>::new();
+        if let Some(options) = options {
+            if let Some(limit) = options.limit {
+                params.push(format!("limit={}", limit));
+            }
+            if let Some(max_id) = &options.max_id {
+                params.push(format!("max_id={}", max_id));
+            }
+            if let Some(min_id) = &options.min_id {
+                params.push(format!("min_id={}", min_id));
+            }
+        }
+        let mut path = "/api/v1/mutes".to_string();
+        if params.len() > 0 {
+            path = path + "?" + params.join("&").as_str();
+        }
+        let res = self
+            .client
+            .get::<Vec<entities::Account>>(path.as_str(), None)
+            .await?;
+
+        Ok(Response::<Vec<MegalodonEntities::Account>>::new(
+            res.json.into_iter().map(|j| j.into()).collect(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
@@ -855,59 +930,134 @@ impl megalodon::Megalodon for Gotosocial {
     }
 
     async fn get_filters(&self) -> Result<Response<Vec<MegalodonEntities::Filter>>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+        let res = self
+            .client
+            .get::<Vec<entities::Filter>>("/api/v1/filters", None)
+            .await?;
+
+        Ok(Response::<Vec<MegalodonEntities::Filter>>::new(
+            res.json.into_iter().map(|j| j.into()).collect(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
-    async fn get_filter(&self, _id: String) -> Result<Response<MegalodonEntities::Filter>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+    async fn get_filter(&self, id: String) -> Result<Response<MegalodonEntities::Filter>, Error> {
+        let res = self
+            .client
+            .get::<entities::Filter>(format!("/api/v1/filters/{}", id).as_str(), None)
+            .await?;
+
+        Ok(Response::<MegalodonEntities::Filter>::new(
+            res.json.into(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
     async fn create_filter(
         &self,
-        _phrase: String,
-        _context: Vec<MegalodonEntities::filter::FilterContext>,
-        _options: Option<&megalodon::FilterInputOptions>,
+        phrase: String,
+        context: Vec<MegalodonEntities::filter::FilterContext>,
+        options: Option<&megalodon::FilterInputOptions>,
     ) -> Result<Response<MegalodonEntities::Filter>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+        let mut params = HashMap::<&str, Value>::from([
+            ("phrase", serde_json::Value::String(phrase)),
+            (
+                "context",
+                serde_json::to_value(&context).ok().unwrap_or_default(),
+            ),
+        ]);
+        if let Some(options) = options {
+            if let Some(irreversible) = options.irreversible {
+                params.insert(
+                    "irreversible",
+                    serde_json::Value::String(irreversible.to_string()),
+                );
+            }
+            if let Some(whole_word) = options.whole_word {
+                params.insert(
+                    "whole_word",
+                    serde_json::Value::String(whole_word.to_string()),
+                );
+            }
+            if let Some(expires_in) = options.expires_in {
+                params.insert(
+                    "expires_in",
+                    serde_json::Value::String(expires_in.to_string()),
+                );
+            }
+        }
+        let res = self
+            .client
+            .post::<entities::Filter>("/api/v1/filters", &params, None)
+            .await?;
+
+        Ok(Response::<MegalodonEntities::Filter>::new(
+            res.json.into(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
     async fn update_filter(
         &self,
-        _id: String,
-        _phrase: String,
-        _context: Vec<MegalodonEntities::filter::FilterContext>,
-        _options: Option<&megalodon::FilterInputOptions>,
+        id: String,
+        phrase: String,
+        context: Vec<MegalodonEntities::filter::FilterContext>,
+        options: Option<&megalodon::FilterInputOptions>,
     ) -> Result<Response<MegalodonEntities::Filter>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+        let mut params = HashMap::<&str, Value>::from([
+            ("phrase", serde_json::Value::String(phrase)),
+            (
+                "context",
+                serde_json::to_value(&context).ok().unwrap_or_default(),
+            ),
+        ]);
+        if let Some(options) = options {
+            if let Some(irreversible) = options.irreversible {
+                params.insert(
+                    "irreversible",
+                    serde_json::Value::String(irreversible.to_string()),
+                );
+            }
+            if let Some(whole_word) = options.whole_word {
+                params.insert(
+                    "whole_word",
+                    serde_json::Value::String(whole_word.to_string()),
+                );
+            }
+            if let Some(expires_in) = options.expires_in {
+                params.insert(
+                    "expires_in",
+                    serde_json::Value::String(expires_in.to_string()),
+                );
+            }
+        }
+        let res = self
+            .client
+            .put::<entities::Filter>(format!("/api/v1/filters/{}", id).as_str(), &params, None)
+            .await?;
+
+        Ok(Response::<MegalodonEntities::Filter>::new(
+            res.json.into(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
-    async fn delete_filter(&self, _id: String) -> Result<Response<()>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
-        ))
+    async fn delete_filter(&self, id: String) -> Result<Response<()>, Error> {
+        let params = HashMap::<&str, Value>::new();
+        let res = self
+            .client
+            .delete::<()>(format!("/api/v1/filters/{}", id).as_str(), &params, None)
+            .await?;
+
+        Ok(res)
     }
 
     async fn report(
@@ -1231,13 +1381,18 @@ impl megalodon::Megalodon for Gotosocial {
 
     async fn get_status_source(
         &self,
-        _id: String,
+        id: String,
     ) -> Result<Response<MegalodonEntities::StatusSource>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+        let res = self
+            .client
+            .get::<entities::StatusSource>(format!("/api/v1/statuses/{}/source", id).as_str(), None)
+            .await?;
+
+        Ok(Response::<MegalodonEntities::StatusSource>::new(
+            res.json.into(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
@@ -1300,25 +1455,41 @@ impl megalodon::Megalodon for Gotosocial {
 
     async fn get_status_reblogged_by(
         &self,
-        _id: String,
+        id: String,
     ) -> Result<Response<Vec<MegalodonEntities::Account>>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+        let res = self
+            .client
+            .get::<Vec<entities::Account>>(
+                format!("/api/v1/statuses/{}/reblogged_by", id).as_str(),
+                None,
+            )
+            .await?;
+
+        Ok(Response::<Vec<MegalodonEntities::Account>>::new(
+            res.json.into_iter().map(|j| j.into()).collect(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
     async fn get_status_favourited_by(
         &self,
-        _id: String,
+        id: String,
     ) -> Result<Response<Vec<MegalodonEntities::Account>>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+        let res = self
+            .client
+            .get::<Vec<entities::Account>>(
+                format!("/api/v1/statuses/{}/favourited_by", id).as_str(),
+                None,
+            )
+            .await?;
+
+        Ok(Response::<Vec<MegalodonEntities::Account>>::new(
+            res.json.into_iter().map(|j| j.into()).collect(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
@@ -1454,24 +1625,44 @@ impl megalodon::Megalodon for Gotosocial {
         ))
     }
 
-    async fn mute_status(&self, _id: String) -> Result<Response<MegalodonEntities::Status>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+    async fn mute_status(&self, id: String) -> Result<Response<MegalodonEntities::Status>, Error> {
+        let params = HashMap::new();
+        let res = self
+            .client
+            .post::<entities::Status>(
+                format!("/api/v1/statuses/{}/mute", id).as_str(),
+                &params,
+                None,
+            )
+            .await?;
+
+        Ok(Response::<MegalodonEntities::Status>::new(
+            res.json.into(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
     async fn unmute_status(
         &self,
-        _id: String,
+        id: String,
     ) -> Result<Response<MegalodonEntities::Status>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+        let params = HashMap::new();
+        let res = self
+            .client
+            .post::<entities::Status>(
+                format!("/api/v1/statuses/{}/unmute", id).as_str(),
+                &params,
+                None,
+            )
+            .await?;
+
+        Ok(Response::<MegalodonEntities::Status>::new(
+            res.json.into(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
@@ -1608,26 +1799,40 @@ impl megalodon::Megalodon for Gotosocial {
         ))
     }
 
-    async fn get_poll(&self, _id: String) -> Result<Response<MegalodonEntities::Poll>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+    async fn get_poll(&self, id: String) -> Result<Response<MegalodonEntities::Poll>, Error> {
+        let res = self
+            .client
+            .get::<entities::Poll>(format!("/api/v1/polls/{}", id).as_str(), None)
+            .await?;
+
+        Ok(Response::<MegalodonEntities::Poll>::new(
+            res.json.into(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
     async fn vote_poll(
         &self,
-        _id: String,
-        _choices: Vec<u32>,
+        id: String,
+        choices: Vec<u32>,
         _status_id: Option<String>,
     ) -> Result<Response<MegalodonEntities::Poll>, Error> {
-        Err(Error::new_own(
-            "Gotosocial doest not support".to_string(),
-            error::Kind::NoImplementedError,
-            None,
-            None,
+        let params = HashMap::<&str, Value>::from([(
+            "choices",
+            serde_json::to_value(&choices).ok().unwrap_or_default(),
+        )]);
+        let res = self
+            .client
+            .post::<entities::Poll>(format!("/api/v1/polls/{}/vote", id).as_str(), &params, None)
+            .await?;
+
+        Ok(Response::<MegalodonEntities::Poll>::new(
+            res.json.into(),
+            res.status,
+            res.status_text,
+            res.header,
         ))
     }
 
@@ -2190,6 +2395,18 @@ impl megalodon::Megalodon for Gotosocial {
     }
 
     async fn dismiss_notification(&self, _id: String) -> Result<Response<()>, Error> {
+        Err(Error::new_own(
+            "Gotosocial doest not support".to_string(),
+            error::Kind::NoImplementedError,
+            None,
+            None,
+        ))
+    }
+
+    async fn read_notifications(
+        &self,
+        _options: &megalodon::ReadNotificationsInputOptions,
+    ) -> Result<Response<()>, Error> {
         Err(Error::new_own(
             "Gotosocial doest not support".to_string(),
             error::Kind::NoImplementedError,
